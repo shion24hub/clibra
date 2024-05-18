@@ -13,7 +13,7 @@ Elapsed time: 0:00:19.009671
 ```
 
 To save to csv file in the current directory
-```
+``` console
 $ clibra generate bybit BTCUSDT 20240101 20240103 60
 Target: /Users/hospital/.clibra/candles/bybit/BTCUSDT/2024-01-01.csv.gz
     - OK.
@@ -24,14 +24,14 @@ Elapsed time: 0:00:00.285979
 ```
 
 To check the symbols already stored
-```
+``` console
 $ clibra show
 Total size: 2.86 MB
 bybit: BTCUSDT from 2024-01-01 to 2024-01-03, 0 missing dates
 ```
 
 To delete symbol data that is no longer needed, specifying a date
-```
+``` console
 $ clibra remove bybit BTCUSDT 20240101 20240102
 Do you really want to remove 2024-01-01 00:00:00-2024-01-02 00:00:00 data for BTCUSDT? (y/n): y
 Target: /Users/hospital/.clibra/candles/bybit/BTCUSDT/2024-01-01.csv.gz
