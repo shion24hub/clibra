@@ -2,7 +2,6 @@
 name = "clibra"
 version = "0.1.0"
 description = ""
-authors = ["Shion Noguchi <shion24stat@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.scripts]
