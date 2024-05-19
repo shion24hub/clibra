@@ -13,13 +13,13 @@ All processes are completed.
 Elapsed time: 0:00:19.009671
 ```
 
-To update continuously with multiple arguments like 
+Or, you may want to execute the following in succession with multiple types of arguments.
 ``` 
 bybit BTCUSDT 20240101 20240103
 bybit ETHUSDT 20240101 20240103
 ```
 
-Prepare a text file with the above written(test.txt) and specify the path
+In this case, prepare a text file containing the above information and specify its path in the update-from command.
 ``` console
 
 $ clibra update-from ./test.txt
