@@ -1,3 +1,4 @@
+from typing import Final, Annotated
 import datetime
 import os
 from pathlib import Path
@@ -12,8 +13,9 @@ from rich import print
 from .exchange import Bybit, Exchange
 
 # Constants
-WORKING_DIR = f"{Path.home()}/.clibra"
-IMPLEMENTED_EXCHANGES_MAPPER = {"bybit": Bybit}
+
+WORKING_DIR: Final = f"{Path.home()}/.clibra"
+IMPLEMENTED_EXCHANGES_MAPPER: Final = {"bybit": Bybit}
 
 logger.remove()
 logger.add(
@@ -22,7 +24,6 @@ logger.add(
 app = typer.Typer()
 
 # Utility Functions
-
 
 def make_1s_candle(df: pd.DataFrame):
     """
@@ -125,10 +126,10 @@ def callback() -> None:
 
 @app.command(help="Update the `clibra` strage.")
 def update(
-    exchange: str = typer.Argument(help="The exchange to update"),
-    symbol: str = typer.Argument(help="The symbol to download"),
-    begin: str = typer.Argument(help="The begin date (YYYYMMDD)"),
-    end: str = typer.Argument(help="The end date (YYYYMMDD)"),
+    exchange: Annotated[str, typer.Argument(help="The exchange to update")],
+    symbol: Annotated[str, typer.Argument(help="The symbol to download")],
+    begin: Annotated[str, typer.Argument(help="The begin date (YYYYMMDD)")],
+    end: Annotated[str, typer.Argument(help="The end date (YYYYMMDD)")],
 ) -> None:
     """update
 
@@ -194,12 +195,12 @@ def update(
 
 @app.command(help="Generate the csv.gz file of T seconds OHLCV.")
 def generate(
-    exchange: str = typer.Argument(help="The exchange to generate"),
-    symbol: str = typer.Argument(help="The symbol to download"),
-    begin: str = typer.Argument(help="The begin date (YYYYMMDD)"),
-    end: str = typer.Argument(help="The end date (YYYYMMDD)"),
-    interval: int = typer.Argument(help="The interval in seconds"),
-    output_dir: str = typer.Option("./", help="The output directory"),
+    exchange: Annotated[str, typer.Argument(help="The exchange to generate")],
+    symbol: Annotated[str, typer.Argument(help="The symbol to download")],
+    begin: Annotated[str, typer.Argument(help="The begin date (YYYYMMDD)")],
+    end: Annotated[str, typer.Argument(help="The end date (YYYYMMDD)")],
+    interval: Annotated[int, typer.Argument(help="The interval in seconds")],
+    output_dir: Annotated[str, typer.Option("./", help="The output directory")],
 ) -> None:
     """generate
 
@@ -285,10 +286,10 @@ def generate(
 
 @app.command(help="Remove data for a specified period.")
 def remove(
-    exchange: str = typer.Argument(help="The exchange to remove"),
-    symbol: str = typer.Argument(help="The symbol to remove"),
-    begin: str = typer.Argument(help="The begin date (YYYYMMDD)"),
-    end: str = typer.Argument(help="The end date (YYYYMMDD)"),
+    exchange: Annotated[str, typer.Argument(help="The exchange to remove")],
+    symbol: Annotated[str, typer.Argument(help="The symbol to remove")],
+    begin: Annotated[str, typer.Argument(help="The begin date (YYYYMMDD)")],
+    end: Annotated[str, typer.Argument(help="The end date (YYYYMMDD)")],
 ) -> None:
     """remove
 
