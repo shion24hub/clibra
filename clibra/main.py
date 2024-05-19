@@ -9,6 +9,7 @@ import pandas as pd
 import typer
 from loguru import logger
 from rich import print
+from rich.progress import track
 
 from .exchange import Bybit, Exchange
 
@@ -156,7 +157,7 @@ def update(
     date_range = pd.date_range(bdt, edt, freq="D")
     ex: Exchange = IMPLEMENTED_EXCHANGES_MAPPER[l_exchange]()
 
-    for date in date_range:
+    for date in track(date_range, description='Update'):
 
         target_dir, target_file = generate_save_path(l_exchange, symbol, date)
         target = os.path.join(target_dir, target_file)
@@ -257,7 +258,7 @@ def generate(
         []
     )  # https://github.com/microsoft/pylance-release/issues/5630
 
-    for date in date_range:
+    for date in track(date_range, description='Generate'):
 
         target_dir, target_file = generate_save_path(l_exchange, symbol, date)
         target = os.path.join(target_dir, target_file)
