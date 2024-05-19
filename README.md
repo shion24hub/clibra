@@ -50,6 +50,28 @@ All processes are completed.
 Elapsed time: 0:00:00.285979
 ```
 
+Or, you may want to execute the following in succession with multiple types of arguments.
+``` 
+bybit BTCUSDT 20240101 20240103 3600
+bybit ETHUSDT 20240101 20240103 3600
+```
+
+In this case, prepare a text file containing the above information and specify its path in the generate-from command.
+``` console
+
+$ clibra generate-from ./test.txt
+Target: /Users/{username}/.clibra/candles/bybit/BTCUSDT/2024-01-01.csv.gz
+    - OK.
+...
+Saved the data to ./bybit_BTCUSDT_20240101_20240103_3600.csv.gz.
+Target: /Users/{username}/.clibra/candles/bybit/ETHUSDT/2024-01-01.csv.gz
+    - OK.
+...
+Saved the data to ./bybit_ETHUSDT_20240101_20240103_3600.csv.gz.
+All processes are completed.
+Elapsed time: 0:00:00.285979
+```
+
 ## 3. Show Command
 
 To check the symbols already stored,
