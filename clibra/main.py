@@ -228,7 +228,7 @@ def generate(
     begin: Annotated[str, typer.Argument(help="The begin date (YYYYMMDD)")],
     end: Annotated[str, typer.Argument(help="The end date (YYYYMMDD)")],
     interval: Annotated[int, typer.Argument(help="The interval in seconds")],
-    output_dir: Annotated[str, typer.Option("./", help="The output directory")],
+    output_dir: Annotated[str, typer.Option(help="The output directory")] = './',
 ) -> None:
     """generate
 
