@@ -395,6 +395,10 @@ def show() -> None:
             dates = [x.split(".")[0] for x in dates]
             dates = [datetime.datetime.strptime(x, "%Y-%m-%d") for x in dates]
 
+            # to avoid empty list
+            if dates == []:
+                continue
+
             mindt = min(dates)
             maxdt = max(dates)
             missings = [
