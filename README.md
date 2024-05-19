@@ -1,5 +1,6 @@
 # Simple Example
 
+## 1. Update Command
 To add Bybit BTCUSDT data from January 1 to 3, 2024 to the data store,
 ``` console
 $ clibra update bybit BTCUSDT 20240101 20240103
@@ -12,6 +13,32 @@ All processes are completed.
 Elapsed time: 0:00:19.009671
 ```
 
+To update continuously with multiple arguments like 
+``` 
+bybit BTCUSDT 20240101 20240103
+bybit ETHUSDT 20240101 20240103
+```
+
+Prepare a text file with the above written(test.txt) and specify the path
+``` console
+
+$ clibra update-from ./test.txt
+Target: /Users/{username}/.clibra/candles/bybit/BTCUSDT/2024-01-01.csv.gz
+    - Downloaded https://public.bybit.com/trading/BTCUSDT/BTCUSDT2024-01-01.csv.gz.
+    - Processed the data. 61199 rows.
+    - Saved the data.
+...
+Target: /Users/{username}/.clibra/candles/bybit/ETHUSDT/2024-01-01.csv.gz
+    - Downloaded https://public.bybit.com/trading/ETHUSDT/BTCUSDT2024-01-01.csv.gz.
+    - Processed the data. 61199 rows.
+    - Saved the data.
+...
+All processes are completed.
+Elapsed time: 0:00:19.009671
+```
+
+## 2. Generate Command
+
 To save to csv file in the current directory,
 ``` console
 $ clibra generate bybit BTCUSDT 20240101 20240103 60
@@ -23,12 +50,16 @@ All processes are completed.
 Elapsed time: 0:00:00.285979
 ```
 
+## 3. Show Command
+
 To check the symbols already stored,
 ``` console
 $ clibra show
 Total size: 2.86 MB
 bybit: BTCUSDT from 2024-01-01 to 2024-01-03, 0 missing dates
 ```
+
+## 4. Remove Command
 
 To delete symbol data that is no longer needed, specifying a date,
 ``` console
