@@ -312,6 +312,34 @@ def generate(
     print(f"Elapsed time: {datetime.datetime.now() - timer}")
 
 
+@app.command()
+def generate_from(file_path: Annotated[str, typer.Argument(help="The file path")]):
+    """ generate_from
+
+    ``` procedure.txt
+
+    bybit BTCUSDT 20240101 20240104 3600
+    bybit ETHUSDT 20240101 20240104 3600
+
+    ```
+    
+    """
+
+    # validate the file
+    if not os.path.exists(file_path):
+        err = f"{file_path} does not exist."
+        raise typer.BadParameter(err)
+    
+    with open(file_path, "r") as f:
+        lines = f.readlines()
+        for line in lines:
+            # if the line is empty, skip
+            if line == "\n":
+                continue
+            args = line.split()
+            generate(*args)
+
+
 @app.command(help="Remove data for a specified period.")
 def remove(
     exchange: Annotated[str, typer.Argument(help="The exchange to remove")],
