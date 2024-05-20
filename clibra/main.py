@@ -1,120 +1,18 @@
-from typing import Final, Annotated
-import datetime
+from typing import Annotated
 import os
-from pathlib import Path
-from urllib.error import HTTPError
-
-import numpy as np
-import pandas as pd
 import typer
-from loguru import logger
-from rich import print
-from rich.progress import track
 
-from .exchange import Bybit, Exchange
+from .cmd.config import WORKING_DIR
+from .cmd.update import update as update_impl
+from .cmd.update import update_from as update_from_impl
+from .cmd.generate import generate as generate_impl
+from .cmd.generate import generate_from as generate_from_impl
+from .cmd.remove import remove as remove_impl
+from .cmd.show import show as show_impl
 
-# Constants
-
-WORKING_DIR: Final = f"{Path.home()}/.clibra"
-IMPLEMENTED_EXCHANGES_MAPPER: Final = {"bybit": Bybit}
-
-logger.remove()
-logger.add(
-    f"{WORKING_DIR}/log/app.log", level="INFO", format="{time} {level} {message}"
-)
 app = typer.Typer()
 
-# Utility Functions
-
-def make_1s_candle(df: pd.DataFrame):
-    """
-    convert trading data to ohlcv data.
-    required columns of df: ['datetime', 'side', 'size', 'price']
-
-    df:
-    - datetime(pd.datetime64[ns]): timestamp of the trade
-    - side(str): 'Buy' or 'Sell'
-    - size(float): size of the trade
-    - price(float): price of the trade
-    """
-
-    df = df[["datetime", "side", "size", "price"]]
-
-    df.loc[:, ["buySize"]] = np.where(df["side"] == "Buy", df["size"], 0)
-    df.loc[:, ["sellSize"]] = np.where(df["side"] == "Sell", df["size"], 0)
-    df.loc[:, ["datetime"]] = df["datetime"].dt.floor("1s")
-
-    df = df.groupby("datetime").agg(
-        {
-            "price": ["first", "max", "min", "last"],
-            "size": "sum",
-            "buySize": "sum",
-            "sellSize": "sum",
-        }
-    )
-
-    # multiindex to single index
-    df.columns = ["_".join(col) for col in df.columns]
-    df = df.rename(
-        columns={
-            "price_first": "open",
-            "price_max": "high",
-            "price_min": "low",
-            "price_last": "close",
-            "size_sum": "volume",
-            "buySize_sum": "buyVolume",
-            "sellSize_sum": "sellVolume",
-        }
-    )
-
-    return df
-
-
-def generate_save_path(exchange: str, symbol: str, date: datetime.datetime) -> str:
-    """
-    Define the storage path.
-    """
-
-    save_path = os.path.join(
-        WORKING_DIR,
-        "candles",
-        exchange,
-        symbol,
-    )
-    filename = f'{date.strftime("%Y-%m-%d")}.csv.gz'
-
-    return save_path, filename
-
-
-def validate_datetime_format(date: str) -> datetime.datetime:
-    """
-    Validate the date format.
-    """
-
-    try:
-        dt = datetime.datetime.strptime(date, "%Y%m%d")
-    except ValueError:
-        err = "Invalid date format. Please use YYYYMMDD."
-        raise typer.BadParameter(err)
-
-    return dt
-
-
-def validate_exchange(exchange: str) -> str:
-    """
-    Validate the exchange.
-    """
-
-    l_exchange = exchange.lower()
-    if l_exchange not in IMPLEMENTED_EXCHANGES_MAPPER.keys():
-        err = f"{exchange} is not supported."
-        raise typer.BadParameter(err)
-
-    return l_exchange
-
-
 # CLI Commands
-
 
 @app.callback(help="A CLI tool for managing the crypto candlestick data.")
 def callback() -> None:
@@ -138,60 +36,7 @@ def update(
 
     """
 
-    timer = datetime.datetime.now()
-
-    # validate the exchange
-    l_exchange = validate_exchange(exchange)
-
-    # validate the date format
-    bdt = validate_datetime_format(begin)
-    edt = validate_datetime_format(end)
-
-    # main process
-    # 1. generate the date range
-    # 2. check if the data already exists
-    # 3. download the data
-    # 4. data processing
-    # 5. save the data
-
-    date_range = pd.date_range(bdt, edt, freq="D")
-    ex: Exchange = IMPLEMENTED_EXCHANGES_MAPPER[l_exchange]()
-
-    for date in track(date_range, description='Update'):
-
-        target_dir, target_file = generate_save_path(l_exchange, symbol, date)
-        target = os.path.join(target_dir, target_file)
-        print(f"Target: {target}")
-
-        # check if the data already exists
-        if os.path.exists(target):
-            print(f"    - Already exists.")
-            continue
-
-        # download the data
-        url = ex.generate_url(symbol, date)
-        try:
-            df = ex.download(url)
-        except HTTPError:
-            print(f"    - Failed to download {url}.")
-            continue
-        except Exception as e:
-            print(f"    - An error occurred: {e}.")
-            continue
-        print(f"    - Downloaded {url}.")
-
-        # data processing
-        df = ex.mold(df)
-        df = make_1s_candle(df)
-        print(f"    - Processed the data. {df.shape[0]} rows.")
-
-        # save the data
-        os.makedirs(target_dir, exist_ok=True)
-        df.to_csv(target, compression="gzip")
-        print(f"    - Saved the data.")
-
-    print("All processes are completed.")
-    print(f"Elapsed time: {datetime.datetime.now() - timer}")
+    update_impl(exchange, symbol, begin, end)
 
 
 @app.command(help="Update the `clibra` storage from a .txt file. The file should contain the following format: `exchange symbol begin end`.")
@@ -207,19 +52,7 @@ def update_from(file_path: Annotated[str, typer.Argument(help="The file path")])
     
     """
 
-    # validate the file
-    if not os.path.exists(file_path):
-        err = f"{file_path} does not exist."
-        raise typer.BadParameter(err)
-    
-    with open(file_path, "r") as f:
-        lines = f.readlines()
-        for line in lines:
-            # if the line is empty, skip
-            if line == "\n":
-                continue
-            args = line.split()
-            update(*args)
+    update_from_impl(file_path)
 
 
 @app.command(help="Generate the csv.gz file of T seconds OHLCV.")
@@ -237,80 +70,7 @@ def generate(
 
     """
 
-    timer = datetime.datetime.now()
-
-    # validate the exchange
-    l_exchange = validate_exchange(exchange)
-
-    # validate the date format
-    bdt = validate_datetime_format(begin)
-    edt = validate_datetime_format(end)
-
-    # main process
-    # 1. generate the date range
-    # 2. check if the data exists
-    # 3. read the data and convert its type
-    # 4. re-structure the data
-    # 5. save the data
-
-    date_range = pd.date_range(bdt, edt, freq="D")
-    dfs: list[pd.DataFrame] = (
-        []
-    )  # https://github.com/microsoft/pylance-release/issues/5630
-
-    for date in track(date_range, description='Generate'):
-
-        target_dir, target_file = generate_save_path(l_exchange, symbol, date)
-        target = os.path.join(target_dir, target_file)
-        print(f"Target: {target}")
-
-        # check if the data exists
-        if not os.path.exists(target):
-            print("    - does not exist.")
-            continue
-
-        # read the data and convert its type
-        df = pd.read_csv(target)
-        df["datetime"] = pd.to_datetime(df["datetime"])
-        df["open"] = df["open"].astype(float)
-        df["high"] = df["high"].astype(float)
-        df["low"] = df["low"].astype(float)
-        df["close"] = df["close"].astype(float)
-        df["volume"] = df["volume"].astype(float)
-        df["buyVolume"] = df["buyVolume"].astype(float)
-        df["sellVolume"] = df["sellVolume"].astype(float)
-
-        # re-structure the data
-        df = df.set_index("datetime")
-        df = df.resample(f"{interval}s").agg(
-            {
-                "open": "first",
-                "high": "max",
-                "low": "min",
-                "close": "last",
-                "volume": "sum",
-                "buyVolume": "sum",
-                "sellVolume": "sum",
-            }
-        )
-
-        df = df.dropna()
-        dfs.append(df)
-        print(f"    - OK.")
-
-    # save
-    if len(dfs) == 0:
-        print("No data.")
-        return
-
-    ans = pd.concat(dfs)
-    file_name = f"{exchange}_{symbol}_{begin}_{end}_{interval}.csv.gz"
-    output_path = os.path.join(output_dir, file_name)
-    ans.to_csv(output_path, compression="gzip")
-
-    print(f"Saved the data to {output_path}.")
-    print(f"All processes are completed.")
-    print(f"Elapsed time: {datetime.datetime.now() - timer}")
+    generate_impl(exchange, symbol, begin, end, interval, output_dir)
 
 
 @app.command()
@@ -326,19 +86,7 @@ def generate_from(file_path: Annotated[str, typer.Argument(help="The file path")
     
     """
 
-    # validate the file
-    if not os.path.exists(file_path):
-        err = f"{file_path} does not exist."
-        raise typer.BadParameter(err)
-    
-    with open(file_path, "r") as f:
-        lines = f.readlines()
-        for line in lines:
-            # if the line is empty, skip
-            if line == "\n":
-                continue
-            args = line.split()
-            generate(*args)
+    generate_from_impl(file_path)
 
 
 @app.command(help="Remove data for a specified period.")
@@ -354,43 +102,7 @@ def remove(
 
     """
 
-    timer = datetime.datetime.now()
-
-    # validate the exchange
-    l_exchange = validate_exchange(exchange)
-
-    # validate the date format
-    bdt = validate_datetime_format(begin)
-    edt = validate_datetime_format(end)
-
-    # confirm
-    y_or_n = typer.prompt(
-        f"Do you really want to remove {bdt}-{edt} data for {symbol}? (y/n)"
-    )
-    if y_or_n != "y":
-        print("Canceled.")
-        return
-
-    # main process
-    # 1. generate the date range
-    # 2. remove the data
-
-    date_range = pd.date_range(bdt, edt, freq="D")
-
-    for date in date_range:
-
-        target_dir, target_file = generate_save_path(l_exchange, symbol, date)
-        target = os.path.join(target_dir, target_file)
-        print(f"Target: {target}")
-
-        if os.path.exists(target):
-            os.remove(target)
-            print(f"    - removed.")
-        else:
-            print(f"    - does not exist.")
-
-    print("All processes are completed.")
-    print(f"Elapsed time: {datetime.datetime.now() - timer}")
+    remove_impl(exchange, symbol, begin, end)
 
 
 @app.command(help="Show the available symbols and dates.")
@@ -401,44 +113,6 @@ def show() -> None:
 
     """
 
-    # print working directory's size
-    total_size = 0
-    for root, _, files in os.walk(WORKING_DIR):
-        for file in files:
-            total_size += os.path.getsize(os.path.join(root, file))
+    show_impl()
 
-    print(f"Total size: {total_size / 1024 / 1024:.2f} MB")
 
-    # main process
-    exchanges = os.listdir(f"{WORKING_DIR}/candles")
-    exchanges = [x for x in exchanges if not x.startswith(".")]
-
-    for exchange in exchanges:
-
-        symbols = os.listdir(f"{WORKING_DIR}/candles/{exchange}")
-        symbols = [x for x in symbols if not x.startswith(".")]
-
-        for symbol in symbols:
-
-            dates = os.listdir(f"{WORKING_DIR}/candles/{exchange}/{symbol}")
-            dates = [x.split(".")[0] for x in dates]
-            dates = [datetime.datetime.strptime(x, "%Y-%m-%d") for x in dates]
-
-            # to avoid empty list
-            if dates == []:
-                continue
-
-            mindt = min(dates)
-            maxdt = max(dates)
-            missings = [
-                x for x in pd.date_range(mindt, maxdt, freq="D") if x not in dates
-            ]
-
-            message = "{}: {} from {} to {}, {} missing dates".format(
-                exchange,
-                symbol,
-                mindt.strftime("%Y-%m-%d"),
-                maxdt.strftime("%Y-%m-%d"),
-                len(missings),
-            )
-            print(message)
